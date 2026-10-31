@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MPI - Sistem Reproduksi Manusia</title>
+    
+    <!-- Fonts: Poppins for modern Canva-like look -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Icons: FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3C096C',
+                        secondary: '#2EC4B6',
+                        accent: '#F8F9FA',
+                        darkBg: '#120320',
+                        cardDark: '#240542'
+                    },
+                    fontFamily: {
+                        sans: ['Poppins', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+        body { font-family: 'Poppins', sans-serif; transition: background-color 0.3s, color 0.3s; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        .dark ::-webkit-scrollbar-track { background: #240542; }
+        ::-webkit-scrollbar-thumb { background: #2EC4B6; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3C096C; }
+
+        /* 3D Button Styles */
+        .btn-3d {
+            transition: all 0.1s;
+            box-shadow: 0 6px 0px rgba(0,0,0,0.2);
+        }
+        .btn-3d:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0px rgba(0,0,0,0.2);
+        }
+        .btn-3d-menu {
+            box-shadow: 0 8px 0px rgba(0,0,0,0.15);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-3d-menu:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 0px rgba(0,0,0,0.2);
+        }
+        .btn-3d-menu:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0px rgba(0,0,0,0.2);
+        }
+
+        /* Animations */
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .pulse-soft { animation: pulseSoft 2s infinite; }
+        @keyframes pulseSoft {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        /* Certificate Styling */
+        #cert-container {
+            width: 1123px; /* A4 Landscape width @ 96dpi */
+            height: 794px; /* A4 Landscape height @ 96dpi */
+            background: linear-gradient(135deg, #F8F9FA 0%, #e0f7f5 100%);
+            position: relative;
+            overflow: hidden;
+            border: 10px solid #3C096C;
+            box-sizing: border-box;
+        }
+        
+        /* Responsive utilities for interactive sim */
+        .match-item.selected {
+            border: 3px solid #2EC4B6;
+            background-color: rgba(46, 196, 182, 0.1);
+            transform: scale(1.05);
+        }
+        .match-item.matched {
+            opacity: 0.5;
+            pointer-events: none;
+            background-color: #d1fae5;
+            border-color: #10b981;
+        }
+        .dark .match-item.matched { background-color: #064e3b; }
+    </style>
+</head>
+<body class="bg-accent text-gray-800 dark:bg-darkBg dark:text-gray-100 min-h-screen flex flex-col relative overflow-x-hidden">
+
+    <!-- BGM Audio -->
+    <audio id="bgm" loop>
+        <source src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3" type="audio/mpeg">
+    </audio>
+
+    <!-- Custom Modal / Message Box -->
+    <div id="customModal" class="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-white dark:bg-cardDark rounded-2xl p-6 md:p-8 max-w-sm w-11/12 text-center shadow-2xl transform scale-95 transition-transform duration-300" id="modalContent">
+            <div id="modalIcon" class="text-5xl mb-4"></div>
+            <h3 id="modalTitle" class="text-2xl font-bold mb-2 text-primary dark:text-secondary"></h3>
+            <p id="modalMessage" class="mb-6 text-gray-600 dark:text-gray-300"></p>
+            <button onclick="closeModal()" class="w-full bg-secondary text-white font-bold py-3 px-6 rounded-xl btn-3d hover:bg-teal-500">Oke, Mengerti!</button>
+        </div>
+    </div>
+
+    <!-- Top Header (Hidden on Login) -->
+    <header id="topHeader" class="hidden sticky top-0 z-40 bg-white dark:bg-cardDark shadow-md p-4 transition-colors duration-300">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold shadow-inner border-2 border-secondary">
+                    <i class="fa-solid fa-user-graduate"></i>
+                </div>
+                <div>
+                    <h2 id="displayNama" class="font-bold text-sm md:text-base leading-tight">Nama Murid</h2>
+                    <p id="displayKelas" class="text-xs text-secondary font-semibold">Kelas</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 md:gap-4">
+                <button onclick="toggleBGM()" id="btnBgm" class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-secondary hover:text-white transition-colors flex items-center justify-center text-gray-600 dark:text-gray-300" title="Musik BGM">
+                    <i class="fa-solid fa-volume-xmark"></i>
+                </button>
+                <button onclick="stopTTS()" class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-red-500 hover:text-white transition-colors flex items-center justify-center text-gray-600 dark:text-gray-300" title="Hentikan Suara">
+                    <i class="fa-solid fa-stop"></i>
+                </button>
+                <button onclick="toggleTheme()" class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-primary hover:text-white transition-colors flex items-center justify-center text-gray-600 dark:text-gray-300" title="Mode Gelap/Terang">
+                    <i class="fa-solid fa-moon" id="themeIcon"></i>
+                </button>
+            </div>
+        </div>
+        <!-- Progress Bar -->
+        <div class="absolute bottom-0 left-0 w-full h-1 bg-gray-200 dark:bg-gray-700">
+            <div id="progressBar" class="h-full bg-secondary transition-all duration-500" style="width: 0%"></div>
+        </div>
+    </header>
+
+    <!-- MAIN APP CONTAINER -->
+    <main class="flex-grow w-full max-w-6xl mx-auto p-4 md:p-6 pb-24 relative">
+        
+        <!-- PAGE: LOGIN -->
+        <section id="page-login" class="min-h-[80vh] flex items-center justify-center fade-in">
+            <div class="bg-white dark:bg-cardDark p-8 md:p-12 rounded-3xl shadow-2xl max-w-lg w-full text-center relative overflow-hidden border-t-8 border-primary">
+                <!-- Decorative element -->
+                <div class="absolute -top-10 -right-10 w-32 h-32 bg-secondary opacity-20 rounded-full blur-2xl"></div>
+                <div class="absolute -bottom-10 -left-10 w-32 h-32 bg-primary opacity-20 rounded-full blur-2xl"></div>
+
+                <div class="mb-8 relative z-10">
+                    <div class="inline-block p-4 bg-purple-100 dark:bg-purple-900 rounded-full mb-4 pulse-soft">
+                        <i class="fa-solid fa-dna text-4xl text-primary dark:text-secondary"></i>
+                    </div>
+                    <h1 class="text-3xl font-extrabold text-primary dark:text-white mb-2">MEDIA PEMBELAJARAN INTERAKTIF</h1>
+                    <h2 class="text-xl font-bold text-secondary mb-4">Sistem Reproduksi Manusia</h2>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Silakan isi data dirimu sebelum memulai petualangan belajar kita hari ini!</p>
+                </div>
+
+                <div class="space-y-5 text-left relative z-10">
+                    <div>
+                        <label class="block font-semibold mb-2 text-sm">Nama Lengkap</label>
+                        <input type="text" id="inputNama" class="w-full p-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:border-secondary focus:ring-0 transition-colors" placeholder="Ketik namamu di sini...">
+                    </div>
+                    <div>
+                        <label class="block font-semibold mb-2 text-sm">Pilih Kelas</label>
+                        <select id="inputKelas" onchange="checkCustomClass()" class="w-full p-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:border-secondary transition-colors">
+                            <option value="">-- Pilih Kelasmu --</option>
+                            <option value="IX A">IX A</option>
+                            <option value="IX B">IX B</option>
+                            <option value="IX C">IX C</option>
+                            <option value="IX D">IX D</option>
+                            <option value="IX E">IX E</option>
+                            <option value="Lainnya">LAINNYA / TULIS MANUAL</option>
+                        </select>
+                    </div>
+                    <div id="customClassDiv" class="hidden">
+                        <label class="block font-semibold mb-2 text-sm">Tulis Kelas Manual</label>
+                        <input type="text" id="inputCustomKelas" class="w-full p-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:border-secondary transition-colors" placeholder="Misal: IX F">
+                    </div>
+                    <button onclick="startApp()" class="w-full bg-primary hover:bg-purple-800 text-white font-bold py-4 rounded-xl text-lg mt-6 btn-3d flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-rocket"></i> MULAI BELAJAR
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- PAGE: MENU UTAMA -->
+        <section id="page-menu" class="hidden fade-in py-8">
+            <div class="text-center mb-10">
+                <h1 class="text-3xl md:text-4xl font-extrabold text-primary dark:text-white mb-3">Menu Belajar</h1>
+                <p class="text-gray-600 dark:text-gray-300">Pilih materi yang ingin kamu pelajari hari ini.</p>
+                <button onclick="speakText('Halo, selamat datang di menu utama. Silakan pilih menu belajar yang tersedia, mulai dari tujuan pembelajaran hingga sertifikat.')" class="mt-3 text-secondary hover:text-primary transition-colors">
+                    <i class="fa-solid fa-volume-high"></i> Dengarkan Petunjuk
+                </button>
+            </div>
+            
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 max-w-4xl mx-auto">
+                <!-- Menu Items -->
+                <button onclick="navTo('page-tujuan')" class="btn-3d-menu bg-white dark:bg-cardDark p-6 rounded-2xl flex flex-col items-center justify-center gap-4 border-b-4 border-gray-200 dark:border-purple-900 group">
+                    <div class="w-16 h-16 rounded-full bg-blue-100 text-blue-500 flex items-center justify-center text-3xl group-hover:scale-110 transition-transform"><i class="fa-solid fa-bullseye"></i></div>
+                    <span class="font-bold text-sm md:text-base text-gray-800 dark:text-gray-200">Tujuan Pembelajaran</span>
+                </button>
+
+                <button onclick="navTo('page-apersepsi')" class="btn-3d-menu bg-white dark:bg-cardDark p-6 rounded-2xl flex flex-col items-center justify-center gap-4 border-b-4 border-gray-200 dark:border-purple-900 group">
+                    <div class="w-16 h-16 rounded-full bg-yellow-100 text-yellow-500 flex items-center justify-center text-3xl group-hover:scale-110 transition-transform"><i class="fa-solid fa-lightbulb"></i></div>
+                    <span class="font-bold text-sm md:text-base text-gray-800 dark:text-gray-200">Apersepsi</span>
+                </button>
+
+                <button onclick="navTo('page-asesmen-awal')" class="btn-3d-menu bg-white dark:bg-cardDark p-6 rounded-2xl flex flex-col items-center justify-center gap-4 border-b-4 border-gray-200 dark:border-purple-900 group">
+                    <div class="w-16 h-16 rounded-full bg-pink-100 text-pink-500 flex items-center justify-center text-3xl group-hover:scale-110 transition-transform"><i class="fa-solid fa-clipboard-question"></i></div>
+                    <span class="font-bold text-sm md:text-base text-gray-800 dark:text-gray-200">Asesmen Awal</span>
+                </button>
+
+                <button onclick="navTo('page-materi')" class="btn-3d-menu bg-white dark:bg-cardDark p-6 rounded-2xl flex flex-col items-center justify-center gap-4 border-b-4 border-gray-200 dark:border-purple-900 group">
+                    <div class="w-16 h-16 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-3xl group-hover:scale-110 transition-transform"><i class="fa-solid fa-book-open"></i></div>
+                    <span class="font-bold text-sm md:text-base text-gray-800 dark:text-gray-200">Materi Belajar</span>
+                </button>
+
+                <button onclick="navTo('page-simulasi')" class="btn-3d-menu bg-white dark:bg-cardDark p-6 rounded-2xl flex flex-col items-center justify-center gap-4 border-b-4 border-gray-200 dark:border-purple-900 group">
+                    <div class="w-16 h-16 rounded-full bg-orange-100 text-orange-500 flex items-center justify-center text-3xl group-hover:scale-110 transition-transform"><i class="fa-solid fa-puzzle-piece"></i></div>
+                    <span class="font-bold text-sm md:text-base text-gray-800 dark:text-gray-200">Simulasi / Aktivitas</span>
+                </button>
+
+                <button onclick="navTo('page-kuis')" class="btn-3d-menu bg-white dark:bg-cardDark p-6 rounded-2xl flex flex-col items-center justify-center gap-4 border-b-4 border-gray-200 dark:border-purple-900 group">
+                    <div class="w-16 h-16 rounded-full bg-red-100 text-red-500 flex items-center justify-center text-3xl group-hover:scale-110 transition-transform"><i class="fa-solid fa-gamepad"></i></div>
+                    <span class="font-bold text-sm md:text-base text-gray-800 dark:text-gray-200">Kuis Interaktif</span>
+                </button>
+
+                <button onclick="navTo('page-asesmen-akhir')" class="btn-3d-menu bg-white dark:bg-cardDark p-6 rounded-2xl flex flex-col items-center justify-center gap-4 border-b-4 border-gray-200 dark:border-purple-900 group">
+                    <div class="w-16 h-16 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center text-3xl group-hover:scale-110 transition-transform"><i class="fa-solid fa-list-check"></i></div>
+                    <span class="font-bold text-sm md:text-base text-gray-800 dark:text-gray-200">Asesmen Akhir</span>
+                </button>
+
+                <button onclick="navTo('page-refleksi')" class="btn-3d-menu bg-white dark:bg-cardDark p-6 rounded-2xl flex flex-col items-center justify-center gap-4 border-b-4 border-gray-200 dark:border-purple-900 group">
+                    <div class="w-16 h-16 rounded-full bg-indigo-100 text-indigo-500 flex items-center justify-center text-3xl group-hover:scale-110 transition-transform"><i class="fa-solid fa-face-smile"></i></div>
+                    <span class="font-bold text-sm md:text-base text-gray-800 dark:text-gray-200">Refleksi</span>
+                </button>
+
+                <button onclick="navTo('page-sertifikat')" class="btn-3d-menu bg-white dark:bg-cardDark p-6 rounded-2xl flex flex-col items-center justify-center gap-4 border-b-4 border-gray-200 dark:border-purple-900 group">
+                    <div class="w-16 h-16 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-3xl group-hover:scale-110 transition-transform"><i class="fa-solid fa-certificate"></i></div>
+                    <span class="font-bold text-sm md:text-base text-gray-800 dark:text-gray-200">Sertifikat</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- PAGE: TUJUAN PEMBELAJARAN -->
+        <section id="page-tujuan" class="hidden fade-in max-w-3xl mx-auto">
+            <div class="bg-white dark:bg-cardDark rounded-3xl p-8 shadow-xl">
+                <div class="flex justify-between items-start mb-6">
+                    <h2 class="text-3xl font-bold text-primary dark:text-secondary flex items-center gap-3">
+                        <i class="fa-solid fa-bullseye text-blue-500"></i> Tujuan Pembelajaran
+                    </h2>
+                    <button onclick="speakText(document.getElementById('teks-tujuan').innerText)" class="text-gray-400 hover:text-primary transition-colors text-2xl" title="Bacakan Teks">
+                        <i class="fa-solid fa-volume-high"></i>
+                    </button>
+                </div>
+                <div id="teks-tujuan" class="space-y-4 text-lg">
+                    <p>Setelah mempelajari materi ini, kamu diharapkan mampu:</p>
+                    <ul class="space-y-3 mt-4">
+                        <li class="flex items-start gap-3">
+                            <i class="fa-solid fa-check-circle text-secondary mt-1"></i>
+                            <span>Menjelaskan struktur dan fungsi organ reproduksi pada laki-laki.</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <i class="fa-solid fa-check-circle text-secondary mt-1"></i>
+                            <span>Menjelaskan struktur dan fungsi organ reproduksi pada perempuan.</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <i class="fa-solid fa-check-circle text-secondary mt-1"></i>
+                            <span>Memahami pentingnya menjaga kesehatan sistem reproduksi.</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- PAGE: APERSEPSI -->
+        <section id="page-apersepsi" class="hidden fade-in max-w-4xl mx-auto">
+             <div class="bg-white dark:bg-cardDark rounded-3xl overflow-hidden shadow-xl">
+                <div class="bg-secondary p-2"></div>
+                <div class="p-8">
+                    <div class="flex justify-between items-start mb-6">
+                        <h2 class="text-3xl font-bold text-primary dark:text-white">Mari Berpikir Sejenak...</h2>
+                        <button onclick="speakText(document.getElementById('teks-apersepsi').innerText)" class="text-gray-400 hover:text-primary transition-colors text-2xl">
+                            <i class="fa-solid fa-volume-high"></i>
+                        </button>
+                    </div>
+                    
+                    <div id="teks-apersepsi" class="flex flex-col md:flex-row gap-8 items-center">
+                        <img src="https://placehold.co/400x300/F8F9FA/3C096C?text=Ilustrasi+Pertumbuhan" alt="Ilustrasi" class="w-full md:w-1/2 rounded-2xl shadow-md" onerror="this.src='https://placehold.co/400x300/eee/999?text=Gambar'">
+                        <div class="w-full md:w-1/2 space-y-6">
+                            <p class="text-xl font-medium italic text-gray-700 dark:text-gray-300">
+                                "Pernahkah kamu menyadari bagaimana tubuhmu banyak berubah saat memasuki masa SMP? Suara menjadi berbeda, fisik bertambah tinggi, dan perubahan lainnya."
+                            </p>
+                            <div class="bg-purple-50 dark:bg-purple-900/30 p-6 rounded-2xl border border-purple-100 dark:border-purple-800">
+                                <h3 class="font-bold text-primary dark:text-secondary mb-2">Pertanyaan Pemantik:</h3>
+                                <p>Menurut pendapatmu, organ tubuh bagian mana yang memicu perubahan fisik tersebut? Dan apa yang akan terjadi jika manusia tidak memiliki sistem reproduksi?</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+             </div>
+        </section>
+
+        <!-- PAGE: ASESMEN AWAL -->
+        <section id="page-asesmen-awal" class="hidden fade-in max-w-3xl mx-auto">
+            <div class="bg-white dark:bg-cardDark rounded-3xl p-8 shadow-xl">
+                <div class="flex justify-between items-center mb-6 border-b pb-4 border-gray-100 dark:border-gray-700">
+                    <h2 class="text-2xl font-bold text-primary dark:text-white"><i class="fa-solid fa-clipboard-question text-pink-500 mr-2"></i> Asesmen Awal</h2>
+                    <span class="bg-pink-100 text-pink-600 px-4 py-1 rounded-full font-bold text-sm" id="counter-awal">Soal 1/5</span>
+                </div>
+                
+                <div id="quiz-awal-container" class="min-h-[250px]">
+                    <!-- Question injected via JS -->
+                </div>
+                
+                <div id="awal-feedback" class="hidden mt-4 p-4 rounded-xl font-medium"></div>
+
+                <div class="mt-8 flex justify-end">
+                    <button id="btn-awal-next" onclick="nextAwal()" class="bg-secondary text-white font-bold py-3 px-8 rounded-xl btn-3d hover:bg-teal-500">Jawab & Lanjut <i class="fa-solid fa-arrow-right ml-2"></i></button>
+                </div>
+            </div>
+        </section>
+
+        <!-- PAGE: MATERI BELAJAR -->
+        <section id="page-materi" class="hidden fade-in max-w-5xl mx-auto">
+            <div class="bg-white dark:bg-cardDark rounded-3xl p-6 md:p-10 shadow-xl space-y-10">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-3xl md:text-4xl font-extrabold text-primary dark:text-secondary border-b-4 border-secondary inline-block pb-2">Sistem Reproduksi Manusia</h2>
+                    <button onclick="speakText('Materi Pembelajaran Sistem Reproduksi Manusia. Sistem reproduksi dibagi menjadi dua, yaitu organ pria dan wanita.')" class="text-gray-400 hover:text-primary transition-colors text-2xl">
+                        <i class="fa-solid fa-volume-high"></i>
+                    </button>
+                </div>
+
+                <!-- Laki-laki -->
+                <div class="space-y-6">
+                    <h3 class="text-2xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2"><i class="fa-solid fa-mars text-blue-500"></i> Organ Reproduksi Laki-Laki</h3>
+                    <div class="grid md:grid-cols-2 gap-6 items-center">
+                        <p class="text-lg leading-relaxed">Fungsi utama sistem reproduksi laki-laki adalah untuk menghasilkan sperma dan hormon testosteron. Organ utamanya meliputi:</p>
+                        <div class="bg-accent dark:bg-gray-800 p-4 rounded-2xl shadow-inner text-sm">
+                            <ul class="space-y-2 font-medium">
+                                <li><b class="text-primary dark:text-secondary">Testis:</b> Menghasilkan sperma dan hormon testosteron.</li>
+                                <li><b class="text-primary dark:text-secondary">Skrotum:</b> Kantung yang menjaga suhu testis agar sesuai untuk produksi sperma.</li>
+                                <li><b class="text-primary dark:text-secondary">Epididimis:</b> Tempat pematangan dan penyimpanan sementara sperma.</li>
+                                <li><b class="text-primary dark:text-secondary">Vas Deferens:</b> Saluran yang mengantar sperma ke vesikula seminalis.</li>
+                                <li><b class="text-primary dark:text-secondary">Penis:</b> Alat kopulasi dan saluran keluarnya urine serta sperma.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Info Box -->
+                <div class="bg-teal-50 dark:bg-teal-900/30 border-l-8 border-secondary p-6 rounded-r-2xl shadow-sm">
+                    <h4 class="font-bold text-secondary text-xl mb-2 flex items-center gap-2"><i class="fa-solid fa-lightbulb"></i> Tahukah Kamu?</h4>
+                    <p class="text-gray-700 dark:text-gray-300">Suhu testis harus sekitar 2°C lebih rendah dari suhu tubuh normal agar dapat memproduksi sperma dengan baik. Itulah mengapa letak testis berada di luar rongga tubuh di dalam skrotum!</p>
+                </div>
+
+                <!-- Perempuan -->
+                <div class="space-y-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                    <h3 class="text-2xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2"><i class="fa-solid fa-venus text-pink-500"></i> Organ Reproduksi Perempuan</h3>
+                    <div class="grid md:grid-cols-2 gap-6 items-center">
+                        <div class="bg-accent dark:bg-gray-800 p-4 rounded-2xl shadow-inner text-sm order-2 md:order-1">
+                            <ul class="space-y-2 font-medium">
+                                <li><b class="text-primary dark:text-secondary">Ovarium (Indung Telur):</b> Menghasilkan sel telur (ovum) dan hormon estrogen serta progesteron.</li>
+                                <li><b class="text-primary dark:text-secondary">Tuba Fallopi (Oviduk):</b> Saluran telur, tempat terjadinya pembuahan (fertilisasi).</li>
+                                <li><b class="text-primary dark:text-secondary">Uterus (Rahim):</b> Tempat pertumbuhan dan perkembangan janin.</li>
+                                <li><b class="text-primary dark:text-secondary">Vagina:</b> Saluran keluarnya darah menstruasi, jalan lahir bayi, dan alat kopulasi.</li>
+                            </ul>
+                        </div>
+                        <p class="text-lg leading-relaxed order-1 md:order-2">Fungsi utamanya adalah menghasilkan sel telur, tempat pembuahan, dan melindungi serta memelihara janin hingga lahir. Wanita memiliki siklus menstruasi bulanan jika sel telur tidak dibuahi.</p>
+                    </div>
+                </div>
+                
+            </div>
+        </section>
+
+        <!-- PAGE: SIMULASI (Tap to Match) -->
+        <section id="page-simulasi" class="hidden fade-in max-w-5xl mx-auto">
+            <div class="bg-white dark:bg-cardDark rounded-3xl p-8 shadow-xl text-center">
+                <h2 class="text-3xl font-bold text-primary dark:text-white mb-2"><i class="fa-solid fa-puzzle-piece text-orange-500"></i> Ayo Berlatih!</h2>
+                <p class="text-gray-600 dark:text-gray-300 mb-8">Tap/Klik pada nama organ (Kiri), lalu Tap/Klik pada fungsinya (Kanan) untuk mencocokkan. Pasangkan semuanya dengan benar!</p>
+
+                <div class="flex flex-col md:flex-row justify-between gap-8 relative">
+                    <!-- Organ Column -->
+                    <div class="w-full md:w-5/12 space-y-4" id="sim-organs">
+                        <!-- Injected via JS -->
+                    </div>
+
+                    <!-- Connectors logic handled by UI feedback (colors) -->
+                    
+                    <!-- Function Column -->
+                    <div class="w-full md:w-5/12 space-y-4" id="sim-functions">
+                        <!-- Injected via JS -->
+                    </div>
+                </div>
+
+                <div class="mt-8">
+                    <button onclick="resetSimulasi()" class="text-gray-500 hover:text-primary font-bold underline"><i class="fa-solid fa-rotate-right"></i> Ulangi Aktivitas</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- PAGE: KUIS INTERAKTIF -->
+        <section id="page-kuis" class="hidden fade-in max-w-3xl mx-auto">
+            <div class="bg-white dark:bg-cardDark rounded-3xl p-8 shadow-xl">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-primary dark:text-white"><i class="fa-solid fa-gamepad text-red-500 mr-2"></i> Kuis Interaktif (HOTS)</h2>
+                        <p class="text-sm text-gray-500" id="counter-kuis">Soal 1/10</p>
+                    </div>
+                    <div class="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 py-2 px-4 rounded-xl">
+                        <i class="fa-solid fa-stopwatch text-red-500 animate-pulse"></i>
+                        <span id="timer-kuis" class="font-bold font-mono text-xl">00:00</span>
+                    </div>
+                </div>
+                
+                <div class="w-full bg-gray-200 dark:bg-gray-700 h-2 mb-6 rounded-full overflow-hidden">
+                    <div id="progress-kuis" class="h-full bg-gradient-to-r from-red-400 to-red-600 transition-all duration-300" style="width: 10%"></div>
+                </div>
+
+                <div id="quiz-container" class="min-h-[250px]">
+                    <!-- Injected via JS -->
+                </div>
+                
+                <div id="kuis-feedback" class="hidden mt-4 p-4 rounded-xl text-sm md:text-base border-l-4"></div>
+
+                <div class="mt-8 flex justify-end gap-3">
+                    <button id="btn-kuis-next" onclick="nextKuis()" class="bg-primary text-white font-bold py-3 px-8 rounded-xl btn-3d hover:bg-purple-800">Cek Jawaban <i class="fa-solid fa-check ml-2"></i></button>
+                </div>
+            </div>
+        </section>
+
+        <!-- PAGE: ASESMEN AKHIR -->
+        <section id="page-asesmen-akhir" class="hidden fade-in max-w-3xl mx-auto">
+            <div class="bg-white dark:bg-cardDark rounded-3xl p-8 shadow-xl">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold text-primary dark:text-white mb-2"><i class="fa-solid fa-list-check text-teal-500"></i> Asesmen Akhir</h2>
+                    <p class="text-gray-600 dark:text-gray-300">Uji pemahaman akhirmu. Skor akan menentukan predikat di sertifikat!</p>
+                </div>
+                
+                <div id="akhir-container" class="min-h-[250px]">
+                    <!-- Injected via JS -->
+                </div>
+                
+                <div class="mt-8 flex justify-between items-center">
+                    <span id="counter-akhir" class="font-bold text-gray-500">Soal 1/10</span>
+                    <button id="btn-akhir-next" onclick="nextAkhir()" class="bg-teal-500 text-white font-bold py-3 px-8 rounded-xl btn-3d hover:bg-teal-600">Selanjutnya <i class="fa-solid fa-arrow-right ml-2"></i></button>
+                </div>
+            </div>
+        </section>
+
+        <!-- PAGE: REFLEKSI -->
+        <section id="page-refleksi" class="hidden fade-in max-w-3xl mx-auto">
+            <div class="bg-white dark:bg-cardDark rounded-3xl p-8 shadow-xl">
+                <h2 class="text-3xl font-bold text-primary dark:text-white mb-6 text-center"><i class="fa-solid fa-face-smile text-indigo-500"></i> Refleksi Belajar</h2>
+                
+                <div class="space-y-6">
+                    <div>
+                        <label class="block font-bold mb-2 text-gray-700 dark:text-gray-200">Bagaimana perasaanmu setelah belajar hari ini?</label>
+                        <div class="flex justify-center gap-6 text-4xl">
+                            <label class="cursor-pointer hover:scale-125 transition-transform"><input type="radio" name="emoji" value="Sangat Senang" class="hidden peer"><span class="peer-checked:opacity-100 opacity-40 grayscale peer-checked:grayscale-0">🤩</span></label>
+                            <label class="cursor-pointer hover:scale-125 transition-transform"><input type="radio" name="emoji" value="Senang" class="hidden peer" checked><span class="peer-checked:opacity-100 opacity-40 grayscale peer-checked:grayscale-0">😊</span></label>
+                            <label class="cursor-pointer hover:scale-125 transition-transform"><input type="radio" name="emoji" value="Biasa Saja" class="hidden peer"><span class="peer-checked:opacity-100 opacity-40 grayscale peer-checked:grayscale-0">😐</span></label>
+                            <label class="cursor-pointer hover:scale-125 transition-transform"><input type="radio" name="emoji" value="Bingung" class="hidden peer"><span class="peer-checked:opacity-100 opacity-40 grayscale peer-checked:grayscale-0">🤔</span></label>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-2 text-gray-700 dark:text-gray-200">Saya sudah memahami...</label>
+                        <textarea id="ref1" rows="2" class="w-full p-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:border-secondary"></textarea>
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-2 text-gray-700 dark:text-gray-200">Hal yang paling menarik adalah...</label>
+                        <textarea id="ref2" rows="2" class="w-full p-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:border-secondary"></textarea>
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-2 text-gray-700 dark:text-gray-200">Hal yang masih membingungkan adalah...</label>
+                        <textarea id="ref3" rows="2" class="w-full p-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:border-secondary"></textarea>
+                    </div>
+                    <button onclick="simpanRefleksi()" class="w-full bg-primary text-white font-bold py-4 rounded-xl btn-3d hover:bg-purple-800">Simpan Refleksi & Lihat Hasil</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- PAGE: SERTIFIKAT -->
+        <section id="page-sertifikat" class="hidden fade-in max-w-5xl mx-auto flex flex-col items-center">
+            
+            <div class="mb-8 text-center bg-white dark:bg-cardDark p-6 rounded-3xl shadow-lg w-full max-w-2xl">
+                <h2 class="text-3xl font-bold text-primary dark:text-white mb-2">Rapor & Sertifikat</h2>
+                <div class="flex justify-around mt-4 bg-accent dark:bg-gray-800 p-4 rounded-2xl">
+                    <div class="text-center">
+                        <p class="text-sm text-gray-500">Nilai Akhir</p>
+                        <p id="hasil-nilai" class="text-3xl font-black text-secondary">0</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-sm text-gray-500">Predikat</p>
+                        <p id="hasil-predikat" class="text-2xl font-bold text-primary dark:text-white">-</p>
+                    </div>
+                </div>
+                <div class="mt-6 flex flex-wrap justify-center gap-3">
+                    <button onclick="bacaHasil()" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 btn-3d text-sm font-bold"><i class="fa-solid fa-volume-high"></i> Bacakan Hasil</button>
+                    <button onclick="downloadSertifikat()" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 btn-3d text-sm font-bold"><i class="fa-solid fa-download"></i> Unduh Sertifikat</button>
+                </div>
+            </div>
+
+            <!-- The Certificate Element (Hidden initially to keep layout clean, generated for download/preview) -->
+            <div class="w-full overflow-x-auto pb-8 flex justify-center">
+                <div id="cert-container" class="scale-[0.3] sm:scale-50 md:scale-75 lg:scale-100 origin-top shadow-2xl relative bg-white">
+                    <!-- Decor -->
+                    <div class="absolute top-0 right-0 w-64 h-64 bg-secondary rounded-bl-[100%] opacity-20"></div>
+                    <div class="absolute bottom-0 left-0 w-64 h-64 bg-primary rounded-tr-[100%] opacity-20"></div>
+                    
+                    <div class="text-center mt-20 relative z-10">
+                        <h1 class="text-5xl font-black text-primary mb-2 uppercase tracking-widest">Sertifikat Penghargaan</h1>
+                        <p class="text-xl text-gray-600 font-medium">Diberikan secara membanggakan kepada:</p>
+                        
+                        <h2 id="cert-nama" class="text-6xl font-bold text-secondary my-8 font-serif italic border-b-2 border-gray-300 inline-block px-10 pb-2">Nama Murid</h2>
+                        
+                        <p class="text-2xl text-gray-700 mt-4">Siswa Kelas <strong id="cert-kelas" class="text-primary">IX</strong></p>
+                        <p class="text-xl text-gray-600 mt-2 max-w-3xl mx-auto leading-relaxed">
+                            Atas keberhasilannya menyelesaikan pembelajaran mandiri pada materi <br>
+                            <strong class="text-2xl text-primary">Sistem Reproduksi Manusia</strong><br>
+                            dengan hasil yang <strong id="cert-predikat-text">Sangat Baik</strong>.
+                        </p>
+                    </div>
+
+                    <div class="absolute bottom-16 w-full px-20 flex justify-between items-end z-10">
+                        <div class="text-center">
+                            <p class="text-lg text-gray-500 mb-2">Nilai Akhir</p>
+                            <div class="w-24 h-24 rounded-full border-4 border-secondary flex items-center justify-center text-4xl font-black text-primary" id="cert-nilai">100</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="w-32 h-10 border-b border-gray-800 mb-2"></div>
+                            <p class="text-lg font-bold text-gray-800">Guru Pengampu</p>
+                            <p class="text-sm text-gray-500" id="cert-tanggal">Tanggal</p>
+                        </div>
+                        <div class="w-32 h-32 opacity-80">
+                            <i class="fa-solid fa-award text-9xl text-yellow-400 drop-shadow-lg"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Bottom Navigation Footer (Hidden on Login) -->
+    <footer id="bottomNav" class="hidden fixed bottom-0 w-full bg-white dark:bg-cardDark border-t border-gray-200 dark:border-gray-800 shadow-[0_-5px_15px_rgba(0,0,0,0.05)] z-40 transition-colors duration-300">
+        <div class="max-w-6xl mx-auto flex justify-between items-center p-3 md:p-4 px-4 md:px-8">
+            <button onclick="navPrev()" class="px-4 py-2 md:px-6 md:py-3 rounded-xl font-bold text-primary dark:text-white bg-purple-50 dark:bg-purple-900/50 hover:bg-purple-100 transition-colors flex items-center gap-2 btn-3d">
+                <i class="fa-solid fa-arrow-left"></i> <span class="hidden sm:inline">Kembali</span>
+            </button>
+            <button onclick="navTo('page-menu')" class="w-12 h-12 md:w-14 md:h-14 rounded-full bg-primary text-white flex items-center justify-center text-xl md:text-2xl btn-3d hover:bg-purple-800 border-4 border-white dark:border-cardDark transform -translate-y-4 shadow-lg">
+                <i class="fa-solid fa-house"></i>
+            </button>
+            <button onclick="navNext()" class="px-4 py-2 md:px-6 md:py-3 rounded-xl font-bold text-white bg-secondary hover:bg-teal-500 transition-colors flex items-center gap-2 btn-3d">
+                <span class="hidden sm:inline">Lanjut</span> <i class="fa-solid fa-arrow-right"></i>
+            </button>
+        </div>
+    </footer>
+
+    <script>
+        // Data State
+        let user = { nama: '', kelas: '' };
+        let scores = { awal: 0, kuis: 0, akhir: 0 };
+        let progress = 0;
+        let currentPageIndex = 0;
+        
+        const pages = [
+            'page-menu', 'page-tujuan', 'page-apersepsi', 'page-asesmen-awal', 
+            'page-materi', 'page-simulasi', 'page-kuis', 'page-asesmen-akhir', 
+            'page-refleksi', 'page-sertifikat'
+        ];
+
+        // --- UI Setup & Global Functions ---
+        
+        function updateProgress() {
+            if (currentPageIndex === 0) progress = 10;
+            else progress = ((currentPageIndex) / (pages.length - 1)) * 100;
+            document.getElementById('progressBar').style.width = progress + '%';
+        }
+
+        function checkCustomClass() {
+            const sel = document.getElementById('inputKelas');
+            const customDiv = document.getElementById('customClassDiv');
+            if (sel.value === 'Lainnya') {
+                customDiv.classList.remove('hidden');
+            } else {
+                customDiv.classList.add('hidden');
+            }
+        }
+
+        function showModal(title, message, icon = '<i class="fa-solid fa-circle-info text-blue-500"></i>') {
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalMessage').innerText = message;
+            document.getElementById('modalIcon').innerHTML = icon;
+            const m = document.getElementById('customModal');
+            m.classList.remove('hidden');
+            setTimeout(() => { m.classList.remove('opacity-0'); m.children[0].classList.remove('scale-95'); }, 10);
+        }
+
+        function closeModal() {
+            const m = document.getElementById('customModal');
+            m.classList.add('opacity-0');
+            m.children[0].classList.add('scale-95');
+            setTimeout(() => m.classList.add('hidden'), 300);
+        }
+
+        function startApp() {
+            const nama = document.getElementById('inputNama').value.trim();
+            const kelasSel = document.getElementById('inputKelas').value;
+            const kelasCustom = document.getElementById('inputCustomKelas').value.trim();
+            
+            let kelas = kelasSel;
+            if (kelas === 'Lainnya') kelas = kelasCustom;
+
+            if (!nama || !kelas) {
+                showModal("Oops!", "Nama dan Kelas harus diisi ya!", '<i class="fa-solid fa-triangle-exclamation text-yellow-500"></i>');
+                return;
+            }
+
+            user.nama = nama;
+            user.kelas = kelas;
+            
+            document.getElementById('displayNama').innerText = user.nama;
+            document.getElementById('displayKelas').innerText = user.kelas;
+
+            // Prepare Certificates
+            document.getElementById('cert-nama').innerText = user.nama;
+            document.getElementById('cert-kelas').innerText = user.kelas;
+            const dateStr = new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
+            document.getElementById('cert-tanggal').innerText = dateStr;
+
+            document.getElementById('page-login').classList.add('hidden');
+            document.getElementById('topHeader').classList.remove('hidden');
+            document.getElementById('bottomNav').classList.remove('hidden');
+            
+            // Auto play music policy
+            toggleBGM(true);
+            navTo('page-menu');
+            
+            speakText(`Selamat datang ${user.nama} di Media Pembelajaran Interaktif Sistem Reproduksi Manusia. Selamat belajar!`);
+        }
+
+        function navTo(pageId) {
+            pages.forEach(p => {
+                const el = document.getElementById(p);
+                if (el) el.classList.add('hidden');
+            });
+            document.getElementById(pageId).classList.remove('hidden');
+            currentPageIndex = pages.indexOf(pageId);
+            updateProgress();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            stopTTS();
+        }
+
+        function navNext() {
+            if (currentPageIndex < pages.length - 1) navTo(pages[currentPageIndex + 1]);
+        }
+        function navPrev() {
+            if (currentPageIndex > 0) navTo(pages[currentPageIndex - 1]);
+        }
+
+        // --- Audio & TTS ---
+        let bgmPlaying = false;
+        function toggleBGM(forcePlay = false) {
+            const bgm = document.getElementById('bgm');
+            const btn = document.getElementById('btnBgm');
+            if (!bgmPlaying || forcePlay) {
+                bgm.play().then(() => {
+                    bgmPlaying = true;
+                    btn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
+                    btn.classList.add('bg-secondary', 'text-white');
+                }).catch(e => console.log("Auto-play prevented by browser"));
+            } else {
+                bgm.pause();
+                bgmPlaying = false;
+                btn.innerHTML = '<i class="fa-solid fa-volume-xmark"></i>';
+                btn.classList.remove('bg-secondary', 'text-white');
+            }
+        }
+
+        function speakText(text) {
+            if (!('speechSynthesis' in window)) return;
+            window.speechSynthesis.cancel(); // stop current
+            const msg = new SpeechSynthesisUtterance(text);
+            msg.lang = 'id-ID';
+            msg.rate = 0.9; // slightly slower for clarity
+            window.speechSynthesis.speak(msg);
+        }
+        function stopTTS() {
+            if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        }
+
+        // --- Theme ---
+        function toggleTheme() {
+            document.documentElement.classList.toggle('dark');
+            const isDark = document.documentElement.classList.contains('dark');
+            document.getElementById('themeIcon').className = isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+        }
+
+        // --- Asesmen Awal ---
+        const soalAwal = [
+            { q: "Apa nama organ reproduksi pria yang menghasilkan sperma?", opts: ["Penis", "Skrotum", "Testis", "Uretra"], ans: 2 },
+            { q: "Di mana letak sel telur (ovum) diproduksi pada wanita?", opts: ["Uterus", "Ovarium", "Vagina", "Tuba Fallopi"], ans: 1 },
+            { q: "Proses peleburan sel sperma dan ovum disebut...", opts: ["Ovulasi", "Menstruasi", "Fertilisasi", "Kopulasi"], ans: 2 },
+            { q: "Fungsi utama rahim (uterus) adalah...", opts: ["Menghasilkan sel telur", "Tempat berkembangnya janin", "Menghasilkan hormon", "Saluran urine"], ans: 1 },
+            { q: "Apa nama saluran yang membawa sperma dari testis?", opts: ["Vas Deferens", "Epididimis", "Uretra", "Tuba Fallopi"], ans: 0 }
+        ];
+        let awalIndex = 0;
+
+        function renderAwal() {
+            const container = document.getElementById('quiz-awal-container');
+            const data = soalAwal[awalIndex];
+            document.getElementById('counter-awal').innerText = `Soal ${awalIndex + 1}/${soalAwal.length}`;
+            
+            let html = `<h3 class="text-xl font-semibold mb-6">${data.q}</h3><div class="space-y-3">`;
+            data.opts.forEach((o, i) => {
+                html += `
+                <label class="block cursor-pointer bg-gray-50 dark:bg-gray-800 p-4 rounded-xl border-2 border-transparent hover:border-pink-300 transition-all flex items-center">
+                    <input type="radio" name="awal_q" value="${i}" class="mr-3 w-5 h-5 text-pink-500 focus:ring-pink-500">
+                    <span>${o}</span>
+                </label>`;
+            });
+            html += `</div>`;
+            container.innerHTML = html;
+            document.getElementById('awal-feedback').classList.add('hidden');
+            document.getElementById('btn-awal-next').innerHTML = `Jawab & Lanjut <i class="fa-solid fa-arrow-right ml-2"></i>`;
+            document.getElementById('btn-awal-next').setAttribute('onclick', 'checkAwal()');
+        }
+
+        function checkAwal() {
+            const selected = document.querySelector('input[name="awal_q"]:checked');
+            if (!selected) return showModal("Belum Dijawab", "Silakan pilih salah satu jawaban terlebih dahulu!");
+            
+            const isCorrect = parseInt(selected.value) === soalAwal[awalIndex].ans;
+            const fb = document.getElementById('awal-feedback');
+            fb.classList.remove('hidden');
+            
+            if (isCorrect) {
+                scores.awal += 20; // 5 questions * 20 = 100
+                fb.className = "mt-4 p-4 rounded-xl font-medium bg-green-100 text-green-700 border-2 border-green-300";
+                fb.innerHTML = `<i class="fa-solid fa-check-circle"></i> Jawabanmu Benar!`;
+                new Audio('https://www.soundjay.com/buttons/sounds/button-09.mp3').play().catch(e=>{});
+            } else {
+                fb.className = "mt-4 p-4 rounded-xl font-medium bg-red-100 text-red-700 border-2 border-red-300";
+                fb.innerHTML = `<i class="fa-solid fa-times-circle"></i> Kurang tepat. Jawaban benar: ${soalAwal[awalIndex].opts[soalAwal[awalIndex].ans]}`;
+            }
+
+            const btn = document.getElementById('btn-awal-next');
+            if (awalIndex < soalAwal.length - 1) {
+                btn.innerHTML = `Soal Berikutnya <i class="fa-solid fa-forward ml-2"></i>`;
+                btn.setAttribute('onclick', 'awalIndex++; renderAwal();');
+            } else {
+                btn.innerHTML = `Selesai Asesmen <i class="fa-solid fa-flag-checkered ml-2"></i>`;
+                btn.setAttribute('onclick', 'selesaiAwal()');
+            }
+        }
+        function selesaiAwal() {
+            showModal("Asesmen Awal Selesai", `Skor awal kamu: ${scores.awal}. Jangan khawatir berapapun skormu, kita akan belajar bersama di materi selanjutnya!`, '<i class="fa-solid fa-star text-yellow-400"></i>');
+            navNext();
+        }
+
+        // --- Simulasi Tap to Match ---
+        const simData = [
+            { id: 1, organ: "Ovarium", func: "Menghasilkan sel telur (ovum)" },
+            { id: 2, organ: "Testis", func: "Menghasilkan sperma" },
+            { id: 3, organ: "Uterus (Rahim)", func: "Tempat berkembangnya janin" },
+            { id: 4, organ: "Tuba Fallopi", func: "Tempat terjadinya pembuahan" },
+            { id: 5, organ: "Skrotum", func: "Menjaga suhu testis" }
+        ];
+        let simSelections = { organ: null, func: null };
+        let simMatched = 0;
+
+        function initSimulasi() {
+            const orgCont = document.getElementById('sim-organs');
+            const funcCont = document.getElementById('sim-functions');
+            orgCont.innerHTML = '<h3 class="font-bold mb-2 text-primary dark:text-secondary border-b pb-2">Nama Organ</h3>';
+            funcCont.innerHTML = '<h3 class="font-bold mb-2 text-primary dark:text-secondary border-b pb-2">Fungsi</h3>';
+            simSelections = { organ: null, func: null };
+            simMatched = 0;
+
+            // Shuffle arrays
+            let shuffledOrgans = [...simData].sort(() => Math.random() - 0.5);
+            let shuffledFuncs = [...simData].sort(() => Math.random() - 0.5);
+
+            shuffledOrgans.forEach(item => {
+                const div = document.createElement('div');
+                div.className = "match-item bg-gray-100 dark:bg-gray-800 p-4 rounded-xl cursor-pointer font-semibold shadow-sm transition-all text-center";
+                div.innerText = item.organ;
+                div.dataset.id = item.id;
+                div.dataset.type = 'organ';
+                div.onclick = () => handleSimClick(div);
+                orgCont.appendChild(div);
+            });
+
+            shuffledFuncs.forEach(item => {
+                const div = document.createElement('div');
+                div.className = "match-item bg-gray-100 dark:bg-gray-800 p-4 rounded-xl cursor-pointer shadow-sm transition-all text-sm flex items-center justify-center min-h-[60px]";
+                div.innerText = item.func;
+                div.dataset.id = item.id;
+                div.dataset.type = 'func';
+                div.onclick = () => handleSimClick(div);
+                funcCont.appendChild(div);
+            });
+        }
+
+        function handleSimClick(el) {
+            if (el.classList.contains('matched')) return;
+            const type = el.dataset.type;
+            
+            // Unselect previous of same type
+            document.querySelectorAll(`.match-item[data-type="${type}"]`).forEach(n => n.classList.remove('selected'));
+            
+            // Select new
+            el.classList.add('selected');
+            simSelections[type] = el;
+
+            // Check match if both selected
+            if (simSelections.organ && simSelections.func) {
+                if (simSelections.organ.dataset.id === simSelections.func.dataset.id) {
+                    // Correct Match
+                    simSelections.organ.classList.replace('selected', 'matched');
+                    simSelections.func.classList.replace('selected', 'matched');
+                    simSelections.organ.innerHTML += ' <i class="fa-solid fa-check text-green-500 ml-2"></i>';
+                    simMatched++;
+                    if (simMatched === simData.length) {
+                        setTimeout(() => showModal("Hebat!", "Kamu berhasil mencocokkan semua organ dengan fungsinya. Growth Mindset: Latihan membuat kita makin paham!", '<i class="fa-solid fa-trophy text-yellow-500"></i>'), 500);
+                    }
+                } else {
+                    // Wrong Match
+                    const o = simSelections.organ;
+                    const f = simSelections.func;
+                    o.classList.add('bg-red-200'); f.classList.add('bg-red-200');
+                    setTimeout(() => {
+                        o.classList.remove('selected', 'bg-red-200');
+                        f.classList.remove('selected', 'bg-red-200');
+                    }, 500);
+                }
+                simSelections = { organ: null, func: null };
+            }
+        }
+        function resetSimulasi() { initSimulasi(); }
+
+        // --- Kuis Interaktif ---
+        const soalKuis = [
+            { q: "Andi membaca artikel bahwa merokok dapat menurunkan kualitas pergerakan sperma. Bagian organ manakah yang paling bertanggung jawab dalam proses pematangan dan penyimpanan sementara sperma sebelum dikeluarkan?", opts: ["Skrotum", "Epididimis", "Vesikula Seminalis", "Kelenjar Prostat"], ans: 1, p: "Epididimis adalah tempat sperma disimpan sementara untuk proses pematangan hingga mampu bergerak membuahi sel telur." },
+            { q: "Seorang wanita mengalami penyumbatan pada kedua Tuba Fallopi akibat infeksi. Dampak langsung dari kondisi ini terhadap proses reproduksinya adalah...", opts: ["Sel telur tidak dapat diproduksi", "Menstruasi akan berhenti selamanya", "Sperma tidak dapat bertemu sel telur", "Rahim tidak bisa menebal"], ans: 2, p: "Tuba fallopi adalah tempat bertemunya sperma dan ovum (fertilisasi). Jika tersumbat, pembuahan tidak terjadi." },
+            { q: "Dokter menyarankan pasien pria menggunakan pakaian dalam yang tidak terlalu ketat agar suhu testis tetap stabil. Mengapa hal ini sangat penting?", opts: ["Mencegah iritasi kulit skrotum", "Spermatogenesis butuh suhu lebih rendah dari suhu tubuh", "Mempercepat produksi hormon testosteron", "Melindungi vas deferens dari tekanan"], ans: 1, p: "Pembentukan sperma (spermatogenesis) optimal pada suhu sekitar 34°C, lebih rendah dari suhu tubuh (37°C)." },
+            { q: "Jika ovum tidak dibuahi oleh sperma, maka dinding rahim (endometrium) yang menebal akan meluruh. Peristiwa ini dikenal sebagai...", opts: ["Ovulasi", "Fertilisasi", "Menopause", "Menstruasi"], ans: 3, p: "Menstruasi adalah peluruhan dinding rahim akibat ovum yang tidak dibuahi." },
+            { q: "Perhatikan fungsi berikut: 1. Alat kopulasi, 2. Saluran sperma, 3. Saluran urine. Organ reproduksi pria yang memiliki ketiga fungsi tersebut adalah...", opts: ["Uretra", "Penis", "Skrotum", "Vas Deferens"], ans: 1, p: "Penis berfungsi sebagai alat kopulasi sekaligus tempat bermuaranya uretra (saluran urine dan sperma)." },
+            { q: "Remaja perempuan mulai mengalami menstruasi pada masa pubertas. Hormon apa yang paling berperan memicu penebalan dinding rahim pada siklus ini?", opts: ["Testosteron & Insulin", "Estrogen & Progesteron", "Adrenalin & Tiroksin", "Oksitosin & Prolaktin"], ans: 1, p: "Estrogen dan progesteron adalah hormon utama wanita yang mengatur siklus menstruasi." },
+            { q: "Bayi di dalam rahim ibu mendapatkan nutrisi dan oksigen melalui sebuah struktur penghubung yang disebut...", opts: ["Ovarium", "Amnion", "Plasenta", "Serviks"], ans: 2, p: "Plasenta (ari-ari) adalah organ yang menyalurkan nutrisi dan oksigen dari ibu ke janin." },
+            { q: "Setelah sperma diproduksi di testis, rute perjalanan sperma hingga keluar tubuh secara berurutan adalah...", opts: ["Testis - Epididimis - Vas deferens - Uretra", "Testis - Vas deferens - Epididimis - Uretra", "Testis - Uretra - Vas deferens - Epididimis", "Testis - Epididimis - Uretra - Vas deferens"], ans: 0, p: "Urutannya: Testis (produksi) -> Epididimis (pematangan) -> Vas Deferens (saluran) -> Uretra (keluar)." },
+            { q: "Kembar identik dapat terjadi jika...", opts: ["Dua ovum dibuahi dua sperma berbeda", "Satu ovum dibuahi satu sperma lalu membelah jadi dua", "Dua sperma membuahi satu ovum bersamaan", "Ovum membelah sebelum dibuahi sperma"], ans: 1, p: "Kembar identik berasal dari 1 zigot (1 ovum + 1 sperma) yang kemudian membelah menjadi 2 embrio." },
+            { q: "Penyakit menular seksual (PMS) seperti Sifilis dapat dicegah. Tindakan pencegahan paling utama pada usia remaja adalah...", opts: ["Rutin mengonsumsi antibiotik", "Membersihkan organ intim dengan sabun sirih setiap hari", "Menghindari pergaulan bebas dan seks pranikah", "Mandi air hangat setiap pagi"], ans: 2, p: "Edukasi terbaik bagi remaja untuk mencegah PMS adalah tidak melakukan hubungan seks di luar nikah." }
+        ];
+        let kuisIndex = 0;
+        let kuisTimer;
+        let kuisTimeLeft = 600; // 10 minutes (600s)
+
+        function startKuisTimer() {
+            clearInterval(kuisTimer);
+            kuisTimeLeft = 600;
+            kuisTimer = setInterval(() => {
+                kuisTimeLeft--;
+                const m = Math.floor(kuisTimeLeft / 60);
+                const s = kuisTimeLeft % 60;
+                document.getElementById('timer-kuis').innerText = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+                if (kuisTimeLeft <= 0) {
+                    clearInterval(kuisTimer);
+                    showModal("Waktu Habis!", "Waktu pengerjaan kuis telah habis.");
+                    selesaiKuis();
+                }
+            }, 1000);
+        }
+
+        function renderKuis() {
+            if (kuisIndex === 0) { scores.kuis = 0; startKuisTimer(); }
+            
+            const container = document.getElementById('quiz-container');
+            const data = soalKuis[kuisIndex];
+            document.getElementById('counter-kuis').innerText = `Soal ${kuisIndex + 1}/${soalKuis.length}`;
+            document.getElementById('progress-kuis').style.width = ((kuisIndex + 1) / soalKuis.length * 100) + '%';
+            
+            let html = `<div class="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-xl mb-6 border border-blue-100 dark:border-blue-800">
+                <p class="text-lg font-semibold leading-relaxed">${data.q}</p>
+            </div><div class="space-y-3">`;
+            
+            data.opts.forEach((o, i) => {
+                html += `
+                <label class="block cursor-pointer bg-gray-50 dark:bg-gray-800 p-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 hover:border-primary transition-all flex items-center peer-checked:border-primary">
+                    <input type="radio" name="kuis_q" value="${i}" class="mr-3 w-5 h-5 text-primary focus:ring-primary">
+                    <span class="text-md">${o}</span>
+                </label>`;
+            });
+            html += `</div>`;
+            container.innerHTML = html;
+            document.getElementById('kuis-feedback').classList.add('hidden');
+            
+            const btn = document.getElementById('btn-kuis-next');
+            btn.innerHTML = `Cek Jawaban <i class="fa-solid fa-check ml-2"></i>`;
+            btn.setAttribute('onclick', 'checkKuis()');
+            btn.classList.remove('hidden');
+        }
+
+        function checkKuis() {
+            const selected = document.querySelector('input[name="kuis_q"]:checked');
+            if (!selected) return showModal("Perhatian", "Pilih jawaban dulu ya!");
+            
+            const data = soalKuis[kuisIndex];
+            const isCorrect = parseInt(selected.value) === data.ans;
+            const fb = document.getElementById('kuis-feedback');
+            fb.classList.remove('hidden');
+            
+            if (isCorrect) {
+                scores.kuis += 10;
+                fb.className = "mt-4 p-4 rounded-xl text-sm md:text-base border-l-4 bg-green-50 text-green-800 border-green-500";
+                fb.innerHTML = `<b><i class="fa-solid fa-check"></i> Tepat Sekali!</b><br>${data.p}`;
+            } else {
+                fb.className = "mt-4 p-4 rounded-xl text-sm md:text-base border-l-4 bg-red-50 text-red-800 border-red-500";
+                fb.innerHTML = `<b><i class="fa-solid fa-times"></i> Kurang Tepat.</b> Jawaban yang benar adalah: <i>${data.opts[data.ans]}</i>.<br>${data.p}`;
+            }
+
+            // Lock radio buttons
+            document.querySelectorAll('input[name="kuis_q"]').forEach(el => el.disabled = true);
+
+            const btn = document.getElementById('btn-kuis-next');
+            if (kuisIndex < soalKuis.length - 1) {
+                btn.innerHTML = `Lanjut Soal <i class="fa-solid fa-forward ml-2"></i>`;
+                btn.setAttribute('onclick', 'kuisIndex++; renderKuis();');
+            } else {
+                btn.innerHTML = `Lihat Hasil Kuis <i class="fa-solid fa-flag-checkered ml-2"></i>`;
+                btn.setAttribute('onclick', 'selesaiKuis()');
+            }
+        }
+
+        function selesaiKuis() {
+            clearInterval(kuisTimer);
+            showModal("Kuis Selesai!", `Skor Kuis Interaktif kamu: ${scores.kuis}/100. Hebat sudah berusaha!`);
+            navNext();
+        }
+
+        // --- Asesmen Akhir (Post-test) ---
+        // We reuse the questions from Kuis for simplicity in this demo, but randomize them.
+        let soalAkhir = [...soalKuis].sort(() => Math.random() - 0.5);
+        let akhirIndex = 0;
+
+        function renderAkhir() {
+            if (akhirIndex === 0) scores.akhir = 0;
+            const container = document.getElementById('akhir-container');
+            const data = soalAkhir[akhirIndex];
+            document.getElementById('counter-akhir').innerText = `Soal ${akhirIndex + 1}/${soalAkhir.length}`;
+            
+            let html = `<h3 class="text-lg font-semibold mb-4">${data.q}</h3><div class="space-y-2">`;
+            data.opts.forEach((o, i) => {
+                html += `
+                <label class="block cursor-pointer bg-gray-50 dark:bg-gray-800 p-3 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-teal-50 dark:hover:bg-teal-900/30 transition-colors flex items-center">
+                    <input type="radio" name="akhir_q" value="${i}" class="mr-3 text-teal-500">
+                    <span class="text-md">${o}</span>
+                </label>`;
+            });
+            html += `</div>`;
+            container.innerHTML = html;
+        }
+
+        function nextAkhir() {
+            const selected = document.querySelector('input[name="akhir_q"]:checked');
+            if (!selected) return showModal("Pilih Jawaban", "Pastikan kamu memilih satu jawaban!");
+            
+            if (parseInt(selected.value) === soalAkhir[akhirIndex].ans) {
+                scores.akhir += 10;
+            }
+
+            if (akhirIndex < soalAkhir.length - 1) {
+                akhirIndex++;
+                renderAkhir();
+            } else {
+                selesaiAkhir();
+            }
+        }
+
+        function selesaiAkhir() {
+            // Predikat calculation
+            let predikat = "";
+            let predikatText = "";
+            if (scores.akhir >= 90) { predikat = "Sangat Baik"; predikatText = "SANGAT BAIK"; }
+            else if (scores.akhir >= 80) { predikat = "Baik"; predikatText = "BAIK"; }
+            else if (scores.akhir >= 70) { predikat = "Cukup"; predikatText = "CUKUP"; }
+            else { predikat = "Perlu Bimbingan"; predikatText = "PERLU BIMBINGAN"; }
+
+            // Update Certificate Data
+            document.getElementById('hasil-nilai').innerText = scores.akhir;
+            document.getElementById('hasil-predikat').innerText = predikat;
+            document.getElementById('cert-nilai').innerText = scores.akhir;
+            document.getElementById('cert-predikat-text').innerText = predikatText;
+
+            showModal("Selesai!", `Asesmen Akhir selesai. Skor kamu: ${scores.akhir} (${predikat})`);
+            navNext(); // goes to refleksi
+        }
+
+        // --- Refleksi ---
+        function simpanRefleksi() {
+            const r1 = document.getElementById('ref1').value.trim();
+            if (!r1) return showModal("Hei!", "Isi sedikit refleksimu ya, minimal pada kotak pertama.");
+            
+            // Fire Confetti if score >= 90 on next page
+            if (scores.akhir >= 90) {
+                setTimeout(() => {
+                    confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#3C096C', '#2EC4B6', '#F8F9FA', '#FFD700'] });
+                }, 500);
+            }
+            navNext();
+        }
+
+        // --- Sertifikat ---
+        function bacaHasil() {
+            let text = `Selamat ${user.nama}. Kamu telah menyelesaikan pembelajaran ini. Nilai akhirmu adalah ${scores.akhir}, dengan predikat ${document.getElementById('hasil-predikat').innerText}.`;
+            if (scores.akhir >= 90) text += " Luar biasa! Pertahankan prestasimu.";
+            else if (scores.akhir < 70) text += " Jangan menyerah, tetap semangat belajar ya.";
+            speakText(text);
+        }
+
+        function downloadSertifikat() {
+            const cert = document.getElementById('cert-container');
+            // Ensure cert is briefly fully visible at native scale to render correctly
+            cert.style.transform = 'scale(1)';
+            
+            html2canvas(cert, { scale: 2, useCORS: true, backgroundColor: "#ffffff" }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `Sertifikat_${user.nama.replace(/\s+/g, '_')}_MPI.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                
+                // Revert scale logic (tailwind classes handle it based on breakpoint, we just remove inline style)
+                cert.style.transform = ''; 
+                showModal("Berhasil!", "Sertifikat berhasil diunduh.");
+            }).catch(e => {
+                console.error(e);
+                cert.style.transform = ''; 
+                showModal("Gagal", "Terjadi kesalahan saat mengunduh sertifikat.");
+            });
+        }
+
+        // --- Initialization ---
+        window.onload = () => {
+            initSimulasi();
+            renderAwal();
+            renderKuis();
+            renderAkhir();
+        };
+
+    </script>
+</body>
+</html>
